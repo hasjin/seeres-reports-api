@@ -3,11 +3,31 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import * as express from 'express';
+import type { Request, Response } from 'express';
+
+type RawBodyRequest = Request & { rawBody?: Buffer };
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
   app.setGlobalPrefix('api');
+
+  app.use(
+    express.json({
+      verify: (req: RawBodyRequest, _res: Response, buf: Buffer) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
+  app.use(
+    express.urlencoded({
+      extended: true,
+      verify: (req: RawBodyRequest, _res: Response, buf: Buffer) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -28,4 +48,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT || 4000);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Nest bootstrap failed', err);
+  process.exit(1);
+});
