@@ -9,7 +9,10 @@ import type { Request, Response } from 'express';
 type RawBodyRequest = Request & { rawBody?: Buffer };
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    bufferLogs: true,
+  });
   app.useLogger(app.get(Logger));
   app.setGlobalPrefix('api');
 

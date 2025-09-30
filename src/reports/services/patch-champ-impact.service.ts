@@ -25,22 +25,52 @@ export class PatchChampImpactService {
     const prevPatchQuery =
       baseline === 'major-minor-prev' ? prevMajorMinorPatchSql : prevPatchSql;
 
-    // 1) 기준(base) 패치 계산
+    // First, pick "previous patch" without queue constraints (legacy behavior)
     const prevRowsUnknown: unknown = await this.ds.query(prevPatchQuery, [
       q.patch,
     ]);
     const prevRows: PrevPatchRow[] = Array.isArray(prevRowsUnknown)
       ? prevRowsUnknown.filter(isPrevPatchRow)
       : [];
-    const basePatch: string | null = prevRows[0]?.patch ?? null;
+    let basePatch: string | null = prevRows[0]?.patch ?? null;
 
-    // 2) 공통 파라미터
+    const checkRowsUnknown: unknown = basePatch
+      ? await this.ds.query(
+          `SELECT 1 FROM patch_totals_q WHERE patch = $1 AND queue = $2 LIMIT 1`,
+          [basePatch, q.queue],
+        )
+      : [];
+    const hasBaseForQueue =
+      basePatch !== null &&
+      Array.isArray(checkRowsUnknown) &&
+      checkRowsUnknown.length > 0;
+
+    if (!hasBaseForQueue) {
+      const prevForQueueSql = `
+        SELECT patch
+        FROM patch_totals_q
+        WHERE queue = $2
+          AND (split_part(patch,'.',1)::int, split_part(patch,'.',2)::int)
+              < (split_part($1,'.',1)::int, split_part($1,'.',2)::int)
+        ORDER BY split_part(patch,'.',1)::int DESC,
+                 split_part(patch,'.',2)::int DESC
+        LIMIT 1
+      `;
+      const altUnknown: unknown = await this.ds.query(prevForQueueSql, [
+        q.patch,
+        q.queue,
+      ]);
+      const alt = Array.isArray(altUnknown) ? altUnknown : [];
+      // rows come back as objects like: { patch: '15.18' }
+      basePatch =
+        (alt[0] as { patch?: string } | undefined)?.patch ?? basePatch ?? null;
+    }
+
     const currPatch = q.patch;
     const queue = q.queue;
     const limit = q.limit ?? 9999;
     const offset = q.offset ?? 0;
 
-    // 3) 핵심 SQL (큐 포함 MV)
     const sql = `
     WITH
     curr_tot AS ( SELECT total_games FROM patch_totals_q WHERE patch = $1 AND queue = $3 ),
@@ -104,17 +134,9 @@ export class PatchChampImpactService {
     LIMIT $4 OFFSET $5
   `;
 
-    // 4) 타입 안전한 파라미터
     type SqlParam = string | number | null;
-    const params: SqlParam[] = [
-      currPatch,
-      basePatch, // null일 수도 있으므로 null 허용
-      queue,
-      limit,
-      offset,
-    ];
+    const params: SqlParam[] = [currPatch, basePatch, queue, limit, offset];
 
-    // 5) 실행 + 런타임 파싱
     const rowsUnknown: unknown = await this.ds.query(sql, params);
     const rowsArray = Array.isArray(rowsUnknown) ? rowsUnknown : [];
     return rowsArray.map(parseImpactRow);
