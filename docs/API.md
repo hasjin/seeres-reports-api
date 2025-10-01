@@ -43,6 +43,7 @@ GET /api/reports/patch-champ-impact
 
 ### 설명
 특정 패치에서 챔피언들의 승률, 픽률, 밴률 변화를 기준 패치와 비교하여 분석합니다.
+지역, 티어, 라인별 필터링을 지원하여 세분화된 메타 분석이 가능합니다.
 
 ### Query Parameters
 
@@ -51,12 +52,32 @@ GET /api/reports/patch-champ-impact
 | `patch` | string | Yes | - | 패치 버전 (예: "15.19") |
 | `queue` | number | Yes | - | 큐 타입 (420: 솔로랭크, 440: 자유랭크, 450: 칼바람) |
 | `baseline` | string | No | "prev" | 비교 기준 ("prev": 이전 패치, "major-minor-prev": 같은 메이저.마이너 내 이전 패치) |
+| `region` | string | No | - | 지역 코드 (kr, na, euw, eune, br, lan, las, oce, ru, tr, jp, ph, sg, th, tw, vn, all) |
+| `tier` | string | No | - | 티어 (IRON, BRONZE, SILVER, GOLD, PLATINUM, EMERALD, DIAMOND, MASTER, GRANDMASTER, CHALLENGER, all) |
+| `role` | string | No | - | 라인 (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY, all) |
 | `limit` | number | No | 9999 | 결과 개수 제한 (1-9999) |
 | `offset` | number | No | 0 | 페이지네이션 오프셋 |
 
-### Request Example
+### Request Examples
+
+#### 기본 (전체 지역/티어)
 ```http
 GET /api/reports/patch-champ-impact?patch=15.19&queue=420&baseline=prev&limit=50
+```
+
+#### 한국 서버만
+```http
+GET /api/reports/patch-champ-impact?patch=15.19&queue=420&region=kr
+```
+
+#### 플래티넘 티어만
+```http
+GET /api/reports/patch-champ-impact?patch=15.19&queue=420&tier=PLATINUM
+```
+
+#### 한국 플래티넘 미드라인
+```http
+GET /api/reports/patch-champ-impact?patch=15.19&queue=420&region=kr&tier=PLATINUM&role=MIDDLE
 ```
 
 ### Response
@@ -100,12 +121,17 @@ GET /api/reports/patch-champ-impact?patch=15.19&queue=420&baseline=prev&limit=50
 2. **큐별 데이터 확인**:
    - 기준 패치에 해당 큐 데이터가 없으면 대체 패치 탐색
 
-3. **델타 계산**:
+3. **필터 적용** (신규):
+   - 필터가 없거나 `all`인 경우: 전체 데이터 사용 (`champion_patch_stats_q`, `ban_patch_stats_q`)
+   - 필터가 있는 경우: 필터링된 뷰 사용 (`champion_stats_region_tier_role`, `ban_stats_region_tier_role`)
+   - 현재 패치와 기준 패치 모두에 동일한 필터 적용
+
+4. **델타 계산**:
    - dWinRate = 현재 승률 - 기준 승률
    - dPickRate = 현재 픽률 - 기준 픽률
    - dBanRate = 현재 밴률 - 기준 밴률
 
-4. **정렬**:
+5. **정렬**:
    - 게임 수 내림차순 → 챔피언 ID 오름차순
 
 ---
@@ -119,6 +145,7 @@ GET /api/champion-trend
 
 ### 설명
 특정 챔피언의 패치별 승률, 픽률 변화 추이를 시계열로 조회합니다.
+지역, 티어, 라인별 필터링을 지원하여 세분화된 트렌드 분석이 가능합니다.
 
 ### Query Parameters
 
@@ -128,10 +155,30 @@ GET /api/champion-trend
 | `queue` | number | Yes | - | 큐 타입 (0-9999) |
 | `upto` | string | Yes | - | 기준 패치 (이 패치까지의 데이터 조회) |
 | `limit` | number | No | 10 | 조회할 패치 개수 (1-100) |
+| `region` | string | No | - | 지역 코드 (kr, na, euw, eune, br, lan, las, oce, ru, tr, jp, ph, sg, th, tw, vn, all) |
+| `tier` | string | No | - | 티어 (IRON, BRONZE, SILVER, GOLD, PLATINUM, EMERALD, DIAMOND, MASTER, GRANDMASTER, CHALLENGER, all) |
+| `role` | string | No | - | 라인 (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY, all) |
 
-### Request Example
+### Request Examples
+
+#### 기본 (전체 지역/티어)
 ```http
 GET /api/champion-trend?championId=266&queue=420&upto=15.19&limit=12
+```
+
+#### 한국 서버만
+```http
+GET /api/champion-trend?championId=266&queue=420&upto=15.19&limit=12&region=kr
+```
+
+#### 플래티넘 티어 미드라인
+```http
+GET /api/champion-trend?championId=266&queue=420&upto=15.19&limit=12&tier=PLATINUM&role=MIDDLE
+```
+
+#### 한국 챌린저 정글
+```http
+GET /api/champion-trend?championId=64&queue=420&upto=15.19&limit=12&region=kr&tier=CHALLENGER&role=JUNGLE
 ```
 
 ### Response
@@ -171,11 +218,16 @@ GET /api/champion-trend?championId=266&queue=420&upto=15.19&limit=12
    - `upto` 패치까지의 모든 패치 조회
    - `released_at` 기준 정렬 (최신순)
 
-2. **통계 조회**:
+2. **필터 적용** (신규):
+   - 필터가 없거나 `all`인 경우: 전체 데이터 사용 (`champion_patch_stats_q`, `patch_totals_q`)
+   - 필터가 있는 경우: 필터링된 뷰 사용 (`champion_stats_region_tier_role`, `patch_totals_region_tier`)
+   - 각 패치별로 필터 조건에 맞는 데이터 집계
+
+3. **통계 조회**:
    - 각 패치별 챔피언 통계 LEFT JOIN
    - 데이터 없는 패치는 0으로 표시
 
-3. **제한**:
+4. **제한**:
    - 최신 N개 패치만 반환 (`limit`)
 
 ---

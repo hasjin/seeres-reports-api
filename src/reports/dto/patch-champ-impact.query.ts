@@ -73,4 +73,63 @@ export class PatchChampImpactQuery {
   @IsOptional()
   @Min(0, { message: 'Offset must be non-negative' })
   offset?: number;
+
+  @ApiProperty({
+    description:
+      '지역 필터 (kr, na, euw, eune, br, lan, las, oce, ru, tr, jp, ph, sg, th, tw, vn)',
+    example: 'kr',
+    required: false,
+  })
+  @IsOptional()
+  @IsIn([
+    'kr',
+    'na',
+    'euw',
+    'eune',
+    'br',
+    'lan',
+    'las',
+    'oce',
+    'ru',
+    'tr',
+    'jp',
+    'ph',
+    'sg',
+    'th',
+    'tw',
+    'vn',
+    'all',
+  ])
+  region?: string;
+
+  @ApiProperty({
+    description:
+      '티어 필터 (IRON, BRONZE, SILVER, GOLD, PLATINUM, EMERALD, DIAMOND, MASTER, GRANDMASTER, CHALLENGER)',
+    example: 'PLATINUM',
+    required: false,
+  })
+  @IsOptional()
+  @IsIn([
+    'IRON',
+    'BRONZE',
+    'SILVER',
+    'GOLD',
+    'PLATINUM',
+    'EMERALD',
+    'DIAMOND',
+    'MASTER',
+    'GRANDMASTER',
+    'CHALLENGER',
+    'all',
+  ])
+  tier?: string;
+
+  @ApiProperty({
+    description: '라인 필터 (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY)',
+    example: 'MIDDLE',
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY', 'all'])
+  role?: string;
 }

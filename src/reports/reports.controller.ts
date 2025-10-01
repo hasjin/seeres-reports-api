@@ -27,13 +27,20 @@ export class ReportsController {
   @CacheTTL(180) // 3분 캐시
   @Get('patch-champ-impact')
   @ApiOperation({
-    summary: '패치 챔피언 임팩트 분석',
+    summary: '패치 챔피언 임팩트 분석 (지역/티어/라인 필터링 지원)',
     description:
       '특정 패치에서 챔피언들의 승률, 픽률, 밴률 변화를 기준 패치와 비교하여 분석합니다.\n\n' +
       '**사용 시나리오:**\n' +
       '- 새로운 패치가 나왔을 때 메타 변화 확인\n' +
       '- 챔피언 버프/너프 영향 분석\n' +
-      '- 픽/밴 우선순위 변화 추적\n\n' +
+      '- 픽/밴 우선순위 변화 추적\n' +
+      '- 특정 지역/티어/라인별 패치 임팩트 분석\n\n' +
+      '**필터 조합 예시:**\n' +
+      '- `patch=15.19&queue=420` - 전체 지역/티어 분석 (기본)\n' +
+      '- `patch=15.19&queue=420&region=kr` - 한국 서버만 분석\n' +
+      '- `patch=15.19&queue=420&tier=PLATINUM` - 플래티넘 티어만 분석\n' +
+      '- `patch=15.19&queue=420&role=MIDDLE` - 미드 라인만 분석\n' +
+      '- `patch=15.19&queue=420&region=kr&tier=PLATINUM&role=MIDDLE` - 한국 플래티넘 미드 분석\n\n' +
       '**응답 정렬:**\n' +
       '- 게임 수 내림차순 (많이 플레이된 챔피언 우선)\n' +
       '- 동일 게임 수일 경우 챔피언 ID 오름차순',

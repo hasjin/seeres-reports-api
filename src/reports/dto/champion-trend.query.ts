@@ -5,6 +5,7 @@ import {
   Min,
   Max,
   Matches,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -59,4 +60,63 @@ export class ChampionTrendQuery {
   @Min(1, { message: 'Limit must be at least 1' })
   @Max(100, { message: 'Limit cannot exceed 100' })
   n = 10;
+
+  @ApiProperty({
+    description:
+      '지역 필터 (kr, na, euw, eune, br, lan, las, oce, ru, tr, jp, ph, sg, th, tw, vn)',
+    example: 'kr',
+    required: false,
+  })
+  @IsOptional()
+  @IsIn([
+    'kr',
+    'na',
+    'euw',
+    'eune',
+    'br',
+    'lan',
+    'las',
+    'oce',
+    'ru',
+    'tr',
+    'jp',
+    'ph',
+    'sg',
+    'th',
+    'tw',
+    'vn',
+    'all',
+  ])
+  region?: string;
+
+  @ApiProperty({
+    description:
+      '티어 필터 (IRON, BRONZE, SILVER, GOLD, PLATINUM, EMERALD, DIAMOND, MASTER, GRANDMASTER, CHALLENGER)',
+    example: 'PLATINUM',
+    required: false,
+  })
+  @IsOptional()
+  @IsIn([
+    'IRON',
+    'BRONZE',
+    'SILVER',
+    'GOLD',
+    'PLATINUM',
+    'EMERALD',
+    'DIAMOND',
+    'MASTER',
+    'GRANDMASTER',
+    'CHALLENGER',
+    'all',
+  ])
+  tier?: string;
+
+  @ApiProperty({
+    description: '라인 필터 (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY)',
+    example: 'MIDDLE',
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY', 'all'])
+  role?: string;
 }
