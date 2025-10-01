@@ -5,6 +5,8 @@ import { PatchChampImpactService } from './services/patch-champ-impact.service';
 import { ChampionTrendController } from './controllers/champion-trend.controller';
 import { ChampionTrendService } from './services/champion-trend.service';
 import { ChampionsController } from './controllers/champions.controller';
+import { BanPickAnalysisController } from './controllers/ban-pick-analysis.controller';
+import { BanPickAnalysisService } from './services/ban-pick-analysis.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([])],
@@ -12,7 +14,12 @@ import { ChampionsController } from './controllers/champions.controller';
     ReportsController,
     ChampionTrendController,
     ChampionsController,
+    BanPickAnalysisController,
   ],
-  providers: [PatchChampImpactService, ChampionTrendService],
+  providers: [
+    PatchChampImpactService,
+    ChampionTrendService,
+    BanPickAnalysisService,
+  ],
 })
 export class ReportsModule {}

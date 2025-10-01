@@ -16,18 +16,23 @@ import {
 export class PatchChampImpactService {
   constructor(private readonly ds: DataSource) {}
 
-  async run(q: PatchChampImpactQuery): Promise<PatchChampImpactRow[]> {
-    if (q.queue === undefined || q.queue === null) {
-      throw new BadRequestException('queue is required');
-    }
-
-    const baseline = q.baseline ?? 'prev';
+  /**
+   * 기준 패치 조회 (컨트롤러에서 사용)
+   */
+  async getBasePatch(
+    patch: string,
+    queue: number,
+    baseline?: 'prev' | 'major-minor-prev',
+  ): Promise<string | null> {
+    const baselineType = baseline ?? 'prev';
     const prevPatchQuery =
-      baseline === 'major-minor-prev' ? prevMajorMinorPatchSql : prevPatchSql;
+      baselineType === 'major-minor-prev'
+        ? prevMajorMinorPatchSql
+        : prevPatchSql;
 
     // First, pick "previous patch" without queue constraints (legacy behavior)
     const prevRowsUnknown: unknown = await this.ds.query(prevPatchQuery, [
-      q.patch,
+      patch,
     ]);
     const prevRows: PrevPatchRow[] = Array.isArray(prevRowsUnknown)
       ? prevRowsUnknown.filter(isPrevPatchRow)
@@ -37,7 +42,7 @@ export class PatchChampImpactService {
     const checkRowsUnknown: unknown = basePatch
       ? await this.ds.query(
           `SELECT 1 FROM patch_totals_q WHERE patch = $1 AND queue = $2 LIMIT 1`,
-          [basePatch, q.queue],
+          [basePatch, queue],
         )
       : [];
     const hasBaseForQueue =
@@ -57,15 +62,23 @@ export class PatchChampImpactService {
         LIMIT 1
       `;
       const altUnknown: unknown = await this.ds.query(prevForQueueSql, [
-        q.patch,
-        q.queue,
+        patch,
+        queue,
       ]);
       const alt = Array.isArray(altUnknown) ? altUnknown : [];
-      // rows come back as objects like: { patch: '15.18' }
       basePatch =
         (alt[0] as { patch?: string } | undefined)?.patch ?? basePatch ?? null;
     }
 
+    return basePatch;
+  }
+
+  async run(q: PatchChampImpactQuery): Promise<PatchChampImpactRow[]> {
+    if (q.queue === undefined || q.queue === null) {
+      throw new BadRequestException('queue is required');
+    }
+
+    const basePatch = await this.getBasePatch(q.patch, q.queue, q.baseline);
     const currPatch = q.patch;
     const queue = q.queue;
     const limit = q.limit ?? 9999;
